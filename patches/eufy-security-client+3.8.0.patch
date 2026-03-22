@@ -1,3 +1,44 @@
+diff --git a/node_modules/eufy-security-client/build/http/station.js b/node_modules/eufy-security-client/build/http/station.js
+index a72d722..24e3f3a 100644
+--- a/node_modules/eufy-security-client/build/http/station.js
++++ b/node_modules/eufy-security-client/build/http/station.js
+@@ -6673,6 +6673,36 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
+                 command: commandData,
+             });
+         }
++        else if (device.getDeviceType() === types_1.DeviceType.INDOOR_PT_CAMERA_E30) {
++            // PATCH (T8417 Indoor Cam E30): streamtype raw value 0 (VideoCodec.H264) causes the
++            // camera to stream H265. Using the 1/2 mapping (same as the HomeBase branch) forces
++            // H264 so downstream consumers (e.g. Scrypted) can decode it without H265 support.
++            // TO REVERT: remove this else-if block; E30 will fall through to the generic
++            // isIndoorPanAndTiltCameraS350() branch below and resume sending streamtype: videoCodec.
++            logging_1.rootHTTPLogger.debug(`Station start livestream - sending command using CMD_DOORBELL_SET_PAYLOAD (E30-H264-fix)`, {
++                stationSN: this.getSerial(),
++                deviceSN: device.getSerial(),
++                videoCodec: videoCodec,
++                main_sw_version: this.getSoftwareVersion(),
++            });
++            this.p2pSession.sendCommandWithStringPayload({
++                commandType: types_2.CommandType.CMD_DOORBELL_SET_PAYLOAD,
++                value: JSON.stringify({
++                    commandType: types_1.ParamType.COMMAND_START_LIVESTREAM,
++                    data: {
++                        accountId: this.rawStation.member.admin_user_id,
++                        camera_type: 0,
++                        encryptkey: rsa_key?.exportKey("components-public").n.subarray(1).toString("hex"),
++                        entrytype: 0,
++                        msg_id: 86,
++                        streamtype: videoCodec === types_2.VideoCodec.H264 ? 1 : 2,
++                    },
++                }),
++                channel: device.getChannel(),
++            }, {
++                command: commandData,
++            });
++        }
+         else if (device.isIndoorPanAndTiltCameraS350()) {
+             logging_1.rootHTTPLogger.debug(`Station start livestream - sending command using CMD_DOORBELL_SET_PAYLOAD (4)`, {
+                 stationSN: this.getSerial(),
 diff --git a/node_modules/eufy-security-client/build/http/types.js b/node_modules/eufy-security-client/build/http/types.js
 index ea32f52..628ef65 100644
 --- a/node_modules/eufy-security-client/build/http/types.js
