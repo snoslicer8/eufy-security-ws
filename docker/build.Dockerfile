@@ -11,6 +11,9 @@ COPY --from=build /tmp/docker/run.sh ./run.sh
 COPY --from=build /tmp/package.json ./package.json
 COPY --from=build /tmp/package-lock.json ./package-lock.json
 RUN npm ci --only=production --ignore-scripts
+# Restore patched files that postinstall would have applied
+COPY --from=build /tmp/node_modules/eufy-security-client/build/http/types.js \
+    ./node_modules/eufy-security-client/build/http/types.js
 
 FROM node:20-alpine
 WORKDIR /usr/src/app
