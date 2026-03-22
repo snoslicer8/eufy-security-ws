@@ -10,7 +10,7 @@ COPY --from=build /tmp/dist ./dist
 COPY --from=build /tmp/docker/run.sh ./run.sh
 COPY --from=build /tmp/package.json ./package.json
 COPY --from=build /tmp/package-lock.json ./package-lock.json
-RUN npm ci --only=production
+RUN npm ci --only=production --ignore-scripts
 
 FROM node:20-alpine
 WORKDIR /usr/src/app
